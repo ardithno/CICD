@@ -1,0 +1,4 @@
+printf
+log
+all
+grep

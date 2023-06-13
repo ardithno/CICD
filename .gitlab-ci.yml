@@ -1,0 +1,69 @@
+stages:
+  - build
+  - tests_codestyle
+  - tests_integration
+  - deploy
+  - bot_fail
+
+cat_grep_build:
+  stage: build
+  tags:
+    - build
+  script:
+    - cd src/cat
+    - make s21_cat
+    - cd ..
+    - cd grep
+    - make s21_grep
+  artifacts:
+    paths:
+      - src/cat/s21_cat
+      - src/grep/s21_grep
+    expire_in: 30 days
+
+cat_grep_tests_codestyle:
+  stage: tests_codestyle
+  tags:
+    - build
+  script:
+    - cd src/cat
+    - make clang-format
+    - cat fail.txt
+    - if [ -s fail.txt ]; then make FAIL; fi
+    - rm fail.txt
+    - cd ..
+    - cd grep
+    - make clang-format
+    - cat fail.txt
+    - if [ -s fail.txt ]; then make FAIL; fi
+    - rm fail.txt
+
+cat_grep_tests_integration:
+  stage: tests_integration
+  tags: 
+    - build
+  script:
+    - cd src/cat
+    - make test
+    - cat test.txt
+    - if [ "$(cat test.txt)" = "FAIL" ]; then make FAIL; fi
+    - rm test.txt
+  when: on_success
+
+cat_grep_deploy:
+  stage: deploy
+  tags:
+    - build
+  script:
+   - sh src/move.sh
+   - sh src/bot.sh "SUCCESS ✅"
+  when: manual
+
+bot_fail:
+  stage: bot_fail
+  tags: 
+    - build
+  script:
+    - sh src/bot.sh "FAIL ❌"
+  when: on_failure
+  
